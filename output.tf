@@ -1,67 +1,48 @@
-##nginx-ingress
-output "ingres_name" {
-  value       = join("", helm_release.ingress_nginx[*].name)
+output "manifest" {
+  value       = helm_release.helm[*].manifest
+  description = "The rendered manifest of the release as JSON. Enable the manifest experiment to use this feature."
+}
+
+output "status" {
+  value       = join("", helm_release.helm[*].status)
+  description = "Status of the release."
+}
+output "name" {
+  value       = join("", helm_release.helm[*].name)
   description = "Release name"
 }
 
-output "ingress_chart" {
-  value       = join("", helm_release.ingress_nginx[*].chart)
+output "chart" {
+  value       = join("", helm_release.helm[*].chart)
   description = "Chart name to be installed"
 }
 
-output "ingress_repository" {
-  value       = join("", helm_release.ingress_nginx[*].repository)
+output "repository" {
+  value       = join("", helm_release.helm[*].repository)
   description = "Repository URL where to locate the requested chart"
 }
 
-output "ingress_nginx_namespace" {
-  value       = join("", helm_release.ingress_nginx[*].namespace)
+output "namespace" {
+  value       = join("", helm_release.helm[*].namespace)
   description = "The namespace to install the release into"
 }
 
-#### autoscaler ######
-output "autoscaler_name" {
-  value       = join("", helm_release.autoscaler[*].name)
-  description = "Release name"
+output "version" {
+  value       = join("", helm_release.helm[*].version)
+  description = "A SemVer 2 conformant version string of the chart."
 }
 
-output "autoscaler_chart" {
-  value       = join("", helm_release.autoscaler[*].chart)
-  description = "Chart name to be installed"
-}
+#output "revision" {
+#  value = join("", helm_release.helm[*].revision)
+#  description = "Version is an int32 which represents the version of the release."
+#}
+#
+#output "app_version" {
+#  value = join("", helm_release.helm[*].app_version)
+#  description = "The version number of the application being deployed."
+#}
 
-output "autoscaler_repository" {
-  value       = join("", helm_release.autoscaler[*].repository)
-  description = "Repository URL where to locate the requested chart"
-}
-
-output "autoscaler_namespace" {
-  value       = join("", helm_release.autoscaler[*].namespace)
-  description = "The namespace to install the release into"
-}
-####
-output "autoscaler_version" {
-  value       = join("", helm_release.autoscaler[*].namespace)
-  description = "The namespace to install the release into"
-}
-##### albingress #####
-#output "albingress_name" {
-#  value       = join("", helm_release.albingress[*].name)
-#   description = "Release name"
-#}
-#
-#output "albingress_chart" {
-#  value = join("", helm_release.albingress[*].chart)
-#   description = "Chart name to be installed"
-#}
-#
-#output "albingress_repository" {
-#  value = join("", helm_release.albingress[*].repository)
-#  description = "Repository URL where to locate the requested chart"
-#}
-#
-#output "albingress_namespace" {
-#  value = join("", helm_release.albingress[*].namespace)
-#  description = "The namespace to install the release into"
-#
+#output "values" {
+#  value = join("", helm_release.helm[*].values)
+#  description = "The compounded values from values and set* attributes."
 #}

@@ -14,7 +14,7 @@ This module is basically combination of Terraform open source and includes autom
 ## Usage
 To use this module, you can include it in your Terraform configuration. Here's an example of how to use it:
 
-## Example
+## Example: ingress_nginx
 ```hcl
 module "ingress_nginx" {
 source                  = "git::https://github.com/cypik/terraform-helm-nginx-ingress.git?ref=v1.0.0"
@@ -26,10 +26,11 @@ ingress_nginx_namespace = "ingress-nginx"
 }
 ```
 
-```hel
-module "autoscaler" {
+## Example: autoscaler
+```hcl
+  module "autoscaler" {
   source                = "git::https://github.com/cypik/terraform-helm-autoscaler.git?ref=v1.0.0"
-  autoscaler_enabled    = false
+  autoscaler_enabled    = true
   autoscaler_name       = "autoscaler"
   autoscaler_repository = "https://kubernetes.github.io/autoscaler"
   autoscaler_chart      = "cluster-autoscaler"
@@ -51,10 +52,10 @@ For security group settings, you can configure the ingress and egress rules usin
 - `namespace` :  Namespace is the kubernetes namespace of the release.
 - `version` : A SemVer 2 conformant version string of the chart.
 ## Example
-For detailed examples on how to use this module, please refer to the [Examples](https://github.com/cypik/terraform-eks-helm/tree/master/example) directory within this repository.
+For detailed examples on how to use this module, please refer to the [Examples](https://github.com/cypik/terraform-helm-nginx-ingress/tree/master/example) directory within this repository.
 
 ## Author
 Your Name Replace '[License Name]' and '[Your Name]' with the appropriate license and your information. Feel free to expand this README with additional details or usage instructions as needed for your specific use case.
 
 ## License
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/cypik/terraform-eks-helm/blob/master/LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/cypik/terraform-helm-nginx-ingress/blob/master/LICENSE) file for details.

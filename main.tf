@@ -1,101 +1,71 @@
-#########    nginx-ingress  ###########
-resource "helm_release" "ingress_nginx" {
-  count           = var.ingress_enable == true ? 1 : 0
-  name            = var.ingres_name
-  repository      = var.ingress_repository
-  chart           = var.ingress_chart
-  namespace       = "kube-system"
-  cleanup_on_fail = true
+resource "helm_release" "helm" {
+  count            = var.enabled ? 1 : 0
+  name             = var.name
+  repository       = var.repository
+  chart            = var.chart
+  namespace        = var.namespace
+  version          = var.chart_version
+  create_namespace = var.create_namespace
+  cleanup_on_fail  = var.cleanup_on_fail
 
-  set {
-    name  = "image.tag"
-    value = "v2.5.1"
+  repository_key_file        = lookup(var.repository_config, "repository_key_file", null)
+  repository_cert_file       = lookup(var.repository_config, "repository_cert_file", null)
+  repository_ca_file         = lookup(var.repository_config, "repository_ca_file", null)
+  repository_username        = lookup(var.repository_config, "repository_username", null)
+  repository_password        = lookup(var.repository_config, "repository_password", null)
+  devel                      = var.devel
+  verify                     = var.verify
+  keyring                    = var.keyring
+  timeout                    = var.timeout
+  disable_webhooks           = var.disable_webhooks
+  reuse_values               = var.reuse_values
+  reset_values               = var.reset_values
+  force_update               = var.force_update
+  recreate_pods              = var.recreate_pods
+  max_history                = var.max_history
+  atomic                     = var.atomic
+  skip_crds                  = var.skip_crds
+  render_subchart_notes      = var.render_subchart_notes
+  disable_openapi_validation = var.disable_openapi_validation
+  wait                       = var.wait
+  wait_for_jobs              = var.wait_for_jobs
+  values                     = var.values
+  dependency_update          = var.dependency_update
+  replace                    = var.replace
+  description                = var.description
+  pass_credentials           = var.pass_credentials
+  lint                       = var.lint
+
+  dynamic "postrender" {
+    for_each = var.postrender == null ? null : var.postrender
+    content {
+      binary_path = try(postrender.value.binary_path, null)
+      args        = try(postrender.value.args, null)
+    }
   }
-  set {
-    name  = "clusterName"
-    value = var.clusterName
+
+  dynamic "set_list" {
+    for_each = var.set_list
+    content {
+      name  = set_list.value.name
+      value = set_list.value.value
+    }
   }
-  set {
-    name  = "vpcId"
-    value = var.vpc_id
+
+  dynamic "set" {
+    for_each = var.set
+    content {
+      name  = set.value.name
+      value = set.value.value
+    }
   }
-  set {
-    name  = "region"
-    value = "us-east-1"
+
+  dynamic "set_sensitive" {
+    for_each = var.set_sensitive
+    content {
+      name  = set_sensitive.value.name
+      value = set_sensitive.value.value
+    }
   }
-  set {
-    name  = "serviceAccount.name"
-    value = "aws-load-balancer-controller"
-  }
-  set {
-    name  = "serviceAccount.create"
-    value = true
-  }
-  set {
-    name  = "replicaCount"
-    value = "1"
-  }
-  wait = false
 }
 
-
-
-############ autoscaler ########
-resource "helm_release" "autoscaler" {
-  count            = var.autoscaler_enabled == true ? 1 : 0
-  name             = var.autoscaler_name
-  repository       = var.autoscaler_repository
-  chart            = var.autoscaler_chart
-  version          = var.autoscaler_version
-  create_namespace = true
-  namespace        = var.autoscaler_namespace
-  values           = var.autoscaler_config
-}
-
-###--------------------------------------------------------alb-ingress---------------------------------------------------------
-#data "kubectl_file_documents" "docs" {
-#  content = file("./crds.yaml")
-#}
-#
-#
-#resource "helm_release" "albingress" {
-#  count            = var.albingress_enabled ? 1 : 0
-#  name             = var.albingress_name
-#  chart            = var.albingress_chart
-#  repository       = var.albingress_repository
-#  #  namespace       = var.albingress_namespace
-#  create_namespace = true
-#  namespace        = "kube-system"
-#  cleanup_on_fail  = true
-#}
-##
-##  set {
-##    name  = "image.tag"
-##    value = "v2.5.1"
-##  }
-##  set {
-##    name  = "clusterName"
-##    value = var.clusterName
-##  }
-##  set {
-##    name  = "vpcId"
-##    value = var.vpc_id
-##  }
-##  set {
-##    name  = "region"
-##    value = "us-east-1"
-##  }
-##  set {
-##    name  = "serviceAccount.name"
-##    value = "aws-load-balancer-controller"
-##  }
-##  set {
-##    name  = "serviceAccount.create"
-##    value = true
-##  }
-##  set {
-##    name  = "replicaCount"
-##    value = "1"
-##  }
-##  wait       = false
-##}

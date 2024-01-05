@@ -1,14 +1,10 @@
 provider "aws" {
   region = local.region
 }
-#provider "helm" {
-#  kubernetes {
-#    config_path = "~/.kube/config"
-#  }
 
 
 locals {
-  name                  = "test-eks"
+  name                  = "demo"
   environment           = "test"
   region                = "us-east-1"
   vpc_cidr_block        = module.vpc.vpc_cidr_block
@@ -151,7 +147,7 @@ data "aws_caller_identity" "current" {}
 
 
 module "eks" {
-  source      = "git::https://github.com/cypik/terraform-aws-eks.git?ref=v1.0.1"
+  source      = "git::https://github.com/cypik/terraform-aws-eks.git?ref=v1.0.2"
   enabled     = true
   name        = local.name
   environment = local.environment
@@ -188,18 +184,18 @@ module "eks" {
     }
   }
   managed_node_group = {
-    critical = {
-      name           = "${module.eks.cluster_name}-critical-node"
-      capacity_type  = "ON_DEMAND"
+    spot = {
+      name           = "${module.eks.cluster_name}-spot"
+      capacity_type  = "SPOT"
       min_size       = 1
-      max_size       = 2
+      max_size       = 3
       desired_size   = 2
       instance_types = ["t3.medium"]
     }
 
-    application = {
-      name                 = "${module.eks.cluster_name}-application"
-      capacity_type        = "SPOT"
+    on_demand = {
+      name                 = "${module.eks.cluster_name}-on-demand"
+      capacity_type        = "ON_DEMAND"
       min_size             = 1
       max_size             = 2
       desired_size         = 1
@@ -218,6 +214,7 @@ module "eks" {
   ]
 }
 
+## Kubernetes provider configuration
 data "aws_eks_cluster_auth" "this" {
   depends_on = [module.eks]
   name       = module.eks.cluster_id
@@ -229,7 +226,6 @@ provider "helm" {
     cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
     token                  = join("", data.aws_eks_cluster_auth.this.*.token)
   }
-
 }
 
 provider "kubernetes" {
@@ -238,37 +234,43 @@ provider "kubernetes" {
   token                  = join("", data.aws_eks_cluster_auth.this.token)
 }
 
+
 module "ingress_nginx" {
-  source             = "./.."
-  ingress_enable     = true
-  ingres_name        = "testing"
-  ingress_chart      = "ingress-nginx"
-  ingress_repository = "https://kubernetes.github.io/ingress-nginx"
-  #  ingress_nginx_namespace = "ingress-nginx"
+  source           = "./../../"
+  name             = "nginx"
+  chart            = "ingress-nginx"
+  namespace        = "ingress-nginx"
+  repository       = "https://kubernetes.github.io/ingress-nginx"
+  chart_version    = "4.9.0"
+  create_namespace = true
+  set = [
+    {
+      name  = "image.tag"
+      value = "v2.5.1"
+    },
+    {
+      name  = "clusterName"
+      value = module.eks.cluster_name
+    },
+    {
+      name  = "vpcId"
+      value = module.vpc.id
+    },
+    {
+      name  = "region"
+      value = "us-east-1"
+    },
+    {
+      name  = "serviceAccount.name"
+      value = "aws-load-balancer-controller"
+    },
+    {
+      name  = "serviceAccount.create"
+      value = true
+    },
+    {
+      name  = "replicaCount"
+      value = "1"
+    }
+  ]
 }
-
-############ autoscaler #########
-module "autoscaler" {
-  source                = "./../"
-  autoscaler_enabled    = false
-  autoscaler_name       = "autoscaler"
-  autoscaler_repository = "https://kubernetes.github.io/autoscaler"
-  autoscaler_chart      = "cluster-autoscaler"
-  autoscaler_version    = "9.34.0"
-  autoscaler_namespace  = "kube-system"
-  depends_on            = [module.eks.cluster_id]
-}
-
-########## albingress #################
-
-#module "albingress" {
-#  source = "./../"
-#  albingress_enabled    = false
-#  albingress_name       = "aws-load-balancer-controller"
-#  albingress_chart      = "aws-load-balancer-controller"
-#  albingressr_epository = "https://aws.github.io/eks-charts"
-#  albingress_namespace  = "kube-system"
-#  cleanup_on_fail       = true
-#  clusterName = module.eks.cluster_name
-#  vpc_id = module.vpc.id
-#}
