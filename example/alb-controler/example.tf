@@ -241,7 +241,7 @@ module "albingress" {
   name            = "alb"
   chart           = "aws-load-balancer-controller"
   repository      = "https://aws.github.io/eks-charts"
-  chart_version    = "1.6.2"
+  chart_version   = "1.6.2"
   namespace       = "kube-system"
   cleanup_on_fail = true
 

@@ -25,20 +25,6 @@ ingress_repository      = "https://kubernetes.github.io/ingress-nginx"
 ingress_nginx_namespace = "ingress-nginx"
 }
 ```
-
-## Example: autoscaler
-```hcl
-  module "autoscaler" {
-  source                = "git::https://github.com/cypik/terraform-helm-autoscaler.git?ref=v1.0.0"
-  autoscaler_enabled    = true
-  autoscaler_name       = "autoscaler"
-  autoscaler_repository = "https://kubernetes.github.io/autoscaler"
-  autoscaler_chart      = "cluster-autoscaler"
-  autoscaler_version    = "9.34.0"
-  autoscaler_namespace  = "kube-system"
-  depends_on            = [module.eks.cluster_id]
-}
-```
 ## Module Inputs
 - `name`  : Release name. The length must not be longer than 53 characters.
 - `chart` : Chart name to be installed.

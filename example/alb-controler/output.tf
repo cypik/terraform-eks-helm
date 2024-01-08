@@ -1,4 +1,3 @@
-##nginx-ingress
 output "albingress_name" {
   value       = module.albingress[*].name
   description = "Release name"

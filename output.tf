@@ -32,17 +32,7 @@ output "version" {
   description = "A SemVer 2 conformant version string of the chart."
 }
 
-#output "revision" {
-#  value = join("", helm_release.helm[*].revision)
-#  description = "Version is an int32 which represents the version of the release."
-#}
-#
-#output "app_version" {
-#  value = join("", helm_release.helm[*].app_version)
-#  description = "The version number of the application being deployed."
-#}
-
-#output "values" {
-#  value = join("", helm_release.helm[*].values)
-#  description = "The compounded values from values and set* attributes."
-#}
+output "values" {
+  value       = join("", helm_release.helm[*].values)
+  description = "The compounded values from values and set* attributes."
+}
