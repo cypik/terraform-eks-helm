@@ -1,4 +1,4 @@
-output "ingres_name" {
+output "ingress_name" {
   value       = module.ingress_nginx[*].name
   description = "Release name"
 }

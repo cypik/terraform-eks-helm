@@ -33,6 +33,6 @@ output "version" {
 }
 
 output "values" {
-  value       = join("", helm_release.helm[*].values)
+  value       = join("", helm_release.helm[0].values)
   description = "The compounded values from values and set* attributes."
 }

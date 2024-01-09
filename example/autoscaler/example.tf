@@ -4,7 +4,7 @@ provider "aws" {
 
 
 locals {
-  name                  = "demo"
+  name                  = "app"
   environment           = "test"
   region                = "us-east-1"
   vpc_cidr_block        = module.vpc.vpc_cidr_block
@@ -183,6 +183,7 @@ module "eks" {
       }
     }
   }
+
   managed_node_group = {
     spot = {
       name           = "${module.eks.cluster_name}-spot"
@@ -226,6 +227,7 @@ provider "helm" {
     cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
     token                  = join("", data.aws_eks_cluster_auth.this[*].token)
   }
+
 }
 
 provider "kubernetes" {
@@ -234,43 +236,58 @@ provider "kubernetes" {
   token                  = join("", data.aws_eks_cluster_auth.this.token)
 }
 
+data "aws_autoscaling_groups" "groups" {
+  depends_on = [module.eks]
+  filter {
+    name   = "tag-value"
+    values = [module.eks.cluster_name]
+  }
+}
 
-module "ingress_nginx" {
+output "aws_autoscaling_groups" {
+  depends_on = [data.aws_autoscaling_groups.groups]
+  value      = data.aws_autoscaling_groups.groups.names[0]
+}
+
+
+############ alb-autoscaler #########
+module "autoscaler" {
   source           = "./../../"
-  name             = "nginx"
-  chart            = "ingress-nginx"
-  namespace        = "ingress-nginx"
-  repository       = "https://kubernetes.github.io/ingress-nginx"
-  chart_version    = "4.9.0"
+  depends_on       = [module.eks.cluster_id]
+  name             = "autoscaler"
+  repository       = "https://kubernetes.github.io/autoscaler"
+  chart            = "cluster-autoscaler"
+  chart_version    = "9.34.1"
+  namespace        = "autoscaler"
   create_namespace = true
   set = [
     {
-      name  = "image.tag"
-      value = "v2.5.1"
-    },
-    {
-      name  = "clusterName"
-      value = module.eks.cluster_name
-    },
-    {
-      name  = "vpcId"
-      value = module.vpc.id
-    },
-    {
-      name  = "region"
+      name  = "awsRegion"
       value = "us-east-1"
     },
     {
-      name  = "serviceAccount.name"
-      value = "aws-load-balancer-controller"
+      name  = "autoscalingGroups[0].name"
+      value = data.aws_autoscaling_groups.groups.names[0]
     },
     {
-      name  = "serviceAccount.create"
-      value = true
+      name  = "autoscalingGroups[0].maxSize"
+      value = 4
     },
     {
-      name  = "replicaCount"
-      value = "1"
-    }
+      name  = "autoscalingGroups[0].minSize"
+      value = 1
+    },
+    {
+      name  = "autoscalingGroups[1].name"
+      value = data.aws_autoscaling_groups.groups.names[1]
+    },
+    {
+      name  = "autoscalingGroups[1].                                                                            "
+      value = 3
+    },
+    {
+      name  = "autoscalingGroups[1].minSize"
+      value = 1
+    },
   ]
 }
