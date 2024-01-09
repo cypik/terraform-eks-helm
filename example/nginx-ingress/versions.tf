@@ -25,7 +25,7 @@ terraform {
     }
     helm = {
       source  = "hashicorp/helm"
-      version = ">= 2.3.0, < 3.0.0"  # Specify the version constraint here
+      version = ">= 2.3.0, < 3.0.0" # Specify the version constraint here
     }
   }
 }
