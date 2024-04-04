@@ -4,26 +4,25 @@ provider "aws" {
 
 
 locals {
-  name                  = "app"
-  environment           = "test"
-  region                = "us-east-1"
-  vpc_cidr_block        = module.vpc.vpc_cidr_block
-  additional_cidr_block = "172.16.0.0/16"
+  name           = "demo"
+  environment    = "test"
+  region         = "us-east-1"
+  vpc_cidr_block = module.vpc.vpc_cidr_block
 
 }
 
 module "vpc" {
-  source      = "git::https://github.com/cypik/terraform-aws-vpc.git?ref=v1.0.0"
+  source      = "cypik/vpc/aws"
+  version     = "1.0.1"
   name        = "${local.name}-vpc"
   environment = local.environment
   cidr_block  = "10.10.0.0/16"
 }
 
-#tfsec:ignore:aws-ec2-no-public-ingress-acl
-#tfsec:ignore:aws-ec2-no-public-ingress-acl
-#tfsec:ignore:aws-ec2-no-excessive-port-access
+
 module "subnets" {
-  source              = "git::https://github.com/cypik/terraform-aws-subnet.git?ref=v1.0.1"
+  source              = "cypik/subnet/aws"
+  version             = "1.0.2"
   name                = "${local.name}-subnet"
   environment         = local.environment
   nat_gateway_enabled = true
@@ -48,10 +47,9 @@ module "subnets" {
 
 }
 
-#tfsec:ignore:aws-ec2-no-public-egress-sgr
 module "ssh" {
-  source = "git::https://github.com/cypik/terraform-aws-security-group.git?ref=v1.0.0"
-
+  source      = "cypik/security-group/aws"
+  version     = "1.0.1"
   name        = "${local.name}-ssh"
   environment = local.environment
   vpc_id      = module.vpc.id
@@ -60,7 +58,7 @@ module "ssh" {
     from_port   = 22
     protocol    = "tcp"
     to_port     = 22
-    cidr_blocks = [local.vpc_cidr_block, local.additional_cidr_block]
+    cidr_blocks = [local.vpc_cidr_block]
     description = "Allow ssh traffic."
     }
   ]
@@ -76,10 +74,10 @@ module "ssh" {
   }]
 }
 
-#tfsec:ignore:aws-ec2-no-public-egress-sgr
-#tfsec:ignore:aws-ec2-no-public-ingress-sgr
+
 module "http_https" {
-  source = "git::https://github.com/cypik/terraform-aws-security-group.git?ref=v1.0.0"
+  source  = "cypik/security-group/aws"
+  version = "1.0.1"
 
   name        = "${local.name}-http-https"
   environment = local.environment
@@ -118,9 +116,9 @@ module "http_https" {
   ]
 }
 
-#tfsec:ignore:aws-kms-auto-rotate-keys
 module "kms" {
-  source              = "git::https://github.com/cypik/terraform-aws-kms.git?ref=v1.0.0"
+  source              = "cypik/kms/aws"
+  version             = "1.0.1"
   name                = "${local.name}-kms"
   environment         = local.environment
   enabled             = true
@@ -147,13 +145,14 @@ data "aws_caller_identity" "current" {}
 
 
 module "eks" {
-  source      = "git::https://github.com/cypik/terraform-aws-eks.git?ref=v1.0.2"
+  source      = "cypik/eks/aws"
+  version     = "1.0.4"
   enabled     = true
   name        = local.name
   environment = local.environment
 
   # EKS
-  kubernetes_version     = "1.28"
+  kubernetes_version     = "1.29"
   endpoint_public_access = true
   # Networking
   vpc_id                            = module.vpc.id
@@ -183,26 +182,25 @@ module "eks" {
       }
     }
   }
-
   managed_node_group = {
     spot = {
       name           = "${module.eks.cluster_name}-spot"
       capacity_type  = "SPOT"
       min_size       = 1
       max_size       = 3
-      desired_size   = 2
+      desired_size   = 1
       instance_types = ["t3.medium"]
     }
 
-    on_demand = {
-      name                 = "${module.eks.cluster_name}-on-demand"
-      capacity_type        = "ON_DEMAND"
-      min_size             = 1
-      max_size             = 2
-      desired_size         = 1
-      force_update_version = true
-      instance_types       = ["t3.medium"]
-    }
+    #    on_demand = {
+    #      name                 = "${module.eks.cluster_name}-on-demand"
+    #      capacity_type        = "ON_DEMAND"
+    #      min_size             = 1
+    #      max_size             = 2
+    #      desired_size         = 1
+    #      force_update_version = true
+    #      instance_types       = ["t3.medium"]
+    #    }
   }
 
   apply_config_map_aws_auth = true
@@ -227,7 +225,6 @@ provider "helm" {
     cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
     token                  = join("", data.aws_eks_cluster_auth.this[*].token)
   }
-
 }
 
 provider "kubernetes" {
@@ -235,6 +232,7 @@ provider "kubernetes" {
   cluster_ca_certificate = module.eks.cluster_certificate_authority_data
   token                  = join("", data.aws_eks_cluster_auth.this.token)
 }
+
 
 module "albingress" {
   source          = "./../../"
