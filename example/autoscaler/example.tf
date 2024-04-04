@@ -1,33 +1,27 @@
 provider "aws" {
   region = local.region
 }
-#provider "helm" {
-#  kubernetes {
-#    config_path = "~/.kube/config"
-#  }
-
 
 locals {
-  name                  = "test-eks"
-  environment           = "test"
-  region                = "us-east-1"
-  vpc_cidr_block        = module.vpc.vpc_cidr_block
-  additional_cidr_block = "172.16.0.0/16"
+  name           = "demo"
+  environment    = "test"
+  region         = "us-east-1"
+  vpc_cidr_block = module.vpc.vpc_cidr_block
 
 }
 
 module "vpc" {
-  source      = "git::https://github.com/cypik/terraform-aws-vpc.git?ref=v1.0.0"
+  source      = "cypik/vpc/aws"
+  version     = "1.0.1"
   name        = "${local.name}-vpc"
   environment = local.environment
   cidr_block  = "10.10.0.0/16"
 }
 
-#tfsec:ignore:aws-ec2-no-public-ingress-acl
-#tfsec:ignore:aws-ec2-no-public-ingress-acl
-#tfsec:ignore:aws-ec2-no-excessive-port-access
+
 module "subnets" {
-  source              = "git::https://github.com/cypik/terraform-aws-subnet.git?ref=v1.0.1"
+  source              = "cypik/subnet/aws"
+  version             = "1.0.2"
   name                = "${local.name}-subnet"
   environment         = local.environment
   nat_gateway_enabled = true
@@ -52,10 +46,9 @@ module "subnets" {
 
 }
 
-#tfsec:ignore:aws-ec2-no-public-egress-sgr
 module "ssh" {
-  source = "git::https://github.com/cypik/terraform-aws-security-group.git?ref=v1.0.0"
-
+  source      = "cypik/security-group/aws"
+  version     = "1.0.1"
   name        = "${local.name}-ssh"
   environment = local.environment
   vpc_id      = module.vpc.id
@@ -64,7 +57,7 @@ module "ssh" {
     from_port   = 22
     protocol    = "tcp"
     to_port     = 22
-    cidr_blocks = [local.vpc_cidr_block, local.additional_cidr_block]
+    cidr_blocks = [local.vpc_cidr_block]
     description = "Allow ssh traffic."
     }
   ]
@@ -80,10 +73,10 @@ module "ssh" {
   }]
 }
 
-#tfsec:ignore:aws-ec2-no-public-egress-sgr
-#tfsec:ignore:aws-ec2-no-public-ingress-sgr
+
 module "http_https" {
-  source = "git::https://github.com/cypik/terraform-aws-security-group.git?ref=v1.0.0"
+  source  = "cypik/security-group/aws"
+  version = "1.0.1"
 
   name        = "${local.name}-http-https"
   environment = local.environment
@@ -122,9 +115,9 @@ module "http_https" {
   ]
 }
 
-#tfsec:ignore:aws-kms-auto-rotate-keys
 module "kms" {
-  source              = "git::https://github.com/cypik/terraform-aws-kms.git?ref=v1.0.0"
+  source              = "cypik/kms/aws"
+  version             = "1.0.1"
   name                = "${local.name}-kms"
   environment         = local.environment
   enabled             = true
@@ -151,13 +144,14 @@ data "aws_caller_identity" "current" {}
 
 
 module "eks" {
-  source      = "git::https://github.com/cypik/terraform-aws-eks.git?ref=v1.0.1"
+  source      = "cypik/eks/aws"
+  version     = "1.0.4"
   enabled     = true
   name        = local.name
   environment = local.environment
 
   # EKS
-  kubernetes_version     = "1.28"
+  kubernetes_version     = "1.29"
   endpoint_public_access = true
   # Networking
   vpc_id                            = module.vpc.id
@@ -188,24 +182,24 @@ module "eks" {
     }
   }
   managed_node_group = {
-    critical = {
-      name           = "${module.eks.cluster_name}-critical-node"
-      capacity_type  = "ON_DEMAND"
+    spot = {
+      name           = "${module.eks.cluster_name}-spot"
+      capacity_type  = "SPOT"
       min_size       = 1
-      max_size       = 2
-      desired_size   = 2
+      max_size       = 3
+      desired_size   = 1
       instance_types = ["t3.medium"]
     }
 
-    application = {
-      name                 = "${module.eks.cluster_name}-application"
-      capacity_type        = "SPOT"
-      min_size             = 1
-      max_size             = 2
-      desired_size         = 1
-      force_update_version = true
-      instance_types       = ["t3.medium"]
-    }
+    #    on_demand = {
+    #      name                 = "${module.eks.cluster_name}-on-demand"
+    #      capacity_type        = "ON_DEMAND"
+    #      min_size             = 1
+    #      max_size             = 2
+    #      desired_size         = 1
+    #      force_update_version = true
+    #      instance_types       = ["t3.medium"]
+    #    }
   }
 
   apply_config_map_aws_auth = true
@@ -218,6 +212,7 @@ module "eks" {
   ]
 }
 
+## Kubernetes provider configuration
 data "aws_eks_cluster_auth" "this" {
   depends_on = [module.eks]
   name       = module.eks.cluster_id
@@ -227,7 +222,7 @@ provider "helm" {
   kubernetes {
     host                   = module.eks.cluster_endpoint
     cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-    token                  = join("", data.aws_eks_cluster_auth.this.*.token)
+    token                  = join("", data.aws_eks_cluster_auth.this[*].token)
   }
 
 }
@@ -238,37 +233,58 @@ provider "kubernetes" {
   token                  = join("", data.aws_eks_cluster_auth.this.token)
 }
 
-module "ingress_nginx" {
-  source             = "./.."
-  ingress_enable     = true
-  ingres_name        = "testing"
-  ingress_chart      = "ingress-nginx"
-  ingress_repository = "https://kubernetes.github.io/ingress-nginx"
-  #  ingress_nginx_namespace = "ingress-nginx"
+data "aws_autoscaling_groups" "groups" {
+  depends_on = [module.eks]
+  filter {
+    name   = "tag-value"
+    values = [module.eks.cluster_name]
+  }
 }
 
-############ autoscaler #########
+output "aws_autoscaling_groups" {
+  depends_on = [data.aws_autoscaling_groups.groups]
+  value      = data.aws_autoscaling_groups.groups.names[0]
+}
+
+
+############ alb-autoscaler #########
 module "autoscaler" {
-  source                = "./../"
-  autoscaler_enabled    = false
-  autoscaler_name       = "autoscaler"
-  autoscaler_repository = "https://kubernetes.github.io/autoscaler"
-  autoscaler_chart      = "cluster-autoscaler"
-  autoscaler_version    = "9.34.0"
-  autoscaler_namespace  = "kube-system"
-  depends_on            = [module.eks.cluster_id]
+  source           = "./../../"
+  depends_on       = [module.eks.cluster_id]
+  name             = "autoscaler"
+  repository       = "https://kubernetes.github.io/autoscaler"
+  chart            = "cluster-autoscaler"
+  chart_version    = "9.34.1"
+  namespace        = "autoscaler"
+  create_namespace = true
+  set = [
+    {
+      name  = "awsRegion"
+      value = "us-east-1"
+    },
+    {
+      name  = "autoscalingGroups[0].name"
+      value = data.aws_autoscaling_groups.groups.names[0]
+    },
+    {
+      name  = "autoscalingGroups[0].maxSize"
+      value = 4
+    },
+    {
+      name  = "autoscalingGroups[0].minSize"
+      value = 2
+    },
+    {
+      name  = "autoscalingGroups[1].name"
+      value = data.aws_autoscaling_groups.groups.names[1]
+    },
+    {
+      name  = "autoscalingGroups[1].                                                                            "
+      value = 3
+    },
+    {
+      name  = "autoscalingGroups[1].minSize"
+      value = 1
+    },
+  ]
 }
-
-########## albingress #################
-
-#module "albingress" {
-#  source = "./../"
-#  albingress_enabled    = false
-#  albingress_name       = "aws-load-balancer-controller"
-#  albingress_chart      = "aws-load-balancer-controller"
-#  albingressr_epository = "https://aws.github.io/eks-charts"
-#  albingress_namespace  = "kube-system"
-#  cleanup_on_fail       = true
-#  clusterName = module.eks.cluster_name
-#  vpc_id = module.vpc.id
-#}
