@@ -274,17 +274,17 @@ module "autoscaler" {
       name  = "autoscalingGroups[0].minSize"
       value = 2
     },
-        {
-          name  = "autoscalingGroups[1].name"
-          value = data.aws_autoscaling_groups.groups.names[1]
-        },
-        {
-          name  = "autoscalingGroups[1].                                                                            "
-          value = 3
-        },
-        {
-          name  = "autoscalingGroups[1].minSize"
-          value = 1
-        },
+    {
+      name  = "autoscalingGroups[1].name"
+      value = data.aws_autoscaling_groups.groups.names[1]
+    },
+    {
+      name  = "autoscalingGroups[1].                                                                            "
+      value = 3
+    },
+    {
+      name  = "autoscalingGroups[1].minSize"
+      value = 1
+    },
   ]
 }
