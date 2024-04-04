@@ -2,7 +2,6 @@ provider "aws" {
   region = local.region
 }
 
-
 locals {
   name           = "demo"
   environment    = "test"
