@@ -230,7 +230,7 @@ provider "helm" {
 provider "kubernetes" {
   host                   = module.eks.cluster_endpoint
   cluster_ca_certificate = module.eks.cluster_certificate_authority_data
-  token                  = join("", data.aws_eks_cluster_auth.this.token)
+  token                  = join("", data.aws_eks_cluster_auth.this[*].token)
 }
 
 module "splunk" {
@@ -255,27 +255,27 @@ module "splunk" {
       value = "us-west-2"
     },
     {
-      name  = "containers.logFormatType"
+      name  = "splunk-kubernetes-logging.containers.logFormatType"
       value = "cri"
     },
     {
-      name  = "splunk.hec.host"
-      value = "http-inputs-example.com"
+      name  = "splunk-kubernetes-logging.splunk.hec.host"
+      value = "prd-p-8h1ge17.splunkcloud.com"
     },
     {
-      name  = "splunk.hec.port"
-      value = "443"
+      name  = "splunk-kubernetes-logging.splunk.hec.port"
+      value = "8088"
     },
     {
-      name  = "splunk.hec.token"
-      value = "564864686543147"
+      name  = "splunk-kubernetes-logging.splunk.hec.token"
+      value = "35c26sdfb70-bb8f-4bfdb4-be82-dafbf25d2bd37fe"
     },
     {
-      name  = "splunk.hec.protocol"
+      name  = "splunk-kubernetes-logging.splunk.hec.protocol"
       value = "https"
     },
     {
-      name  = "splunk.hec.insecureSSL"
+      name  = "splunk-kubernetes-logging.splunk.hec.insecureSSL"
       value = "true"
     },
     {
