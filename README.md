@@ -1,4 +1,4 @@
-# Terraform-aws-eks
+# Terraform-eks-helm
 
 # AWS Infrastructure Provisioning with Terraform
 
