@@ -31,5 +31,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
-#      - name: Run TFLint
-#        run: tflint -f compact
+      - name: Run TFLint
+        run: tflint -f compact

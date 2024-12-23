@@ -1,14 +1,14 @@
-output "albingress_name" {
-  value       = module.albingress[*].name
+output "alb_controler_name" {
+  value       = module.alb_controler[*].name
   description = "Release name"
 }
 
-output "albingress_chart" {
-  value       = module.albingress[*].chart
+output "alb_controler_chart" {
+  value       = module.alb_controler[*].chart
   description = "Chart name to be installed"
 }
 
-output "albingressr_repository" {
-  value       = module.albingress[*].repository
+output "alb_controlerr_repository" {
+  value       = module.alb_controler[*].repository
   description = "Repository URL where to locate the requested chart"
 }
