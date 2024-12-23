@@ -4,7 +4,7 @@ provider "aws" {
 
 
 locals {
-  name           = "demo22"
+  name           = "app"
   environment    = "test"
   region         = "eu-west-1"
   vpc_cidr_block = module.vpc.vpc_cidr_block
