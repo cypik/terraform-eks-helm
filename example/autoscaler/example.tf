@@ -5,35 +5,31 @@ provider "aws" {
 locals {
   name           = "demo"
   environment    = "test"
-  region         = "us-east-1"
+  region         = "eu-west-1"
   vpc_cidr_block = module.vpc.vpc_cidr_block
 
 }
 
 module "vpc" {
   source      = "cypik/vpc/aws"
-  version     = "1.0.1"
+  version     = "1.0.2"
   name        = "${local.name}-vpc"
   environment = local.environment
   cidr_block  = "10.10.0.0/16"
 }
 
-
 module "subnets" {
   source              = "cypik/subnet/aws"
-  version             = "1.0.2"
+  version             = "1.0.3"
   name                = "${local.name}-subnet"
   environment         = local.environment
   nat_gateway_enabled = true
   single_nat_gateway  = true
   availability_zones  = ["${local.region}a", "${local.region}b", "${local.region}c"]
-  vpc_id              = module.vpc.id
+  vpc_id              = module.vpc.vpc_id
   type                = "public-private"
   igw_id              = module.vpc.igw_id
   cidr_block          = local.vpc_cidr_block
-  ipv6_cidr_block     = module.vpc.ipv6_cidr_block
-  enable_ipv6         = false
-
   extra_public_tags = {
     "kubernetes.io/cluster/${module.eks.cluster_name}" = "shared"
     "kubernetes.io/role/elb"                           = "1"
@@ -43,7 +39,6 @@ module "subnets" {
     "kubernetes.io/cluster/${module.eks.cluster_name}" = "shared"
     "kubernetes.io/role/internal-elb"                  = "1"
   }
-
 }
 
 module "ssh" {
@@ -51,7 +46,7 @@ module "ssh" {
   version     = "1.0.1"
   name        = "${local.name}-ssh"
   environment = local.environment
-  vpc_id      = module.vpc.id
+  vpc_id      = module.vpc.vpc_id
   new_sg_ingress_rules_with_cidr_blocks = [{
     rule_count  = 1
     from_port   = 22
@@ -73,15 +68,12 @@ module "ssh" {
   }]
 }
 
-
 module "http_https" {
-  source  = "cypik/security-group/aws"
-  version = "1.0.1"
-
+  source      = "cypik/security-group/aws"
+  version     = "1.0.1"
   name        = "${local.name}-http-https"
   environment = local.environment
-
-  vpc_id = module.vpc.id
+  vpc_id      = module.vpc.vpc_id
   ## INGRESS Rules
   new_sg_ingress_rules_with_cidr_blocks = [
     {
@@ -117,7 +109,7 @@ module "http_https" {
 
 module "kms" {
   source              = "cypik/kms/aws"
-  version             = "1.0.1"
+  version             = "1.0.2"
   name                = "${local.name}-kms"
   environment         = local.environment
   enabled             = true
@@ -145,16 +137,16 @@ data "aws_caller_identity" "current" {}
 
 module "eks" {
   source      = "cypik/eks/aws"
-  version     = "1.0.4"
+  version     = "1.0.5"
   enabled     = true
   name        = local.name
   environment = local.environment
 
   # EKS
-  kubernetes_version     = "1.29"
+  kubernetes_version     = "1.31"
   endpoint_public_access = true
   # Networking
-  vpc_id                            = module.vpc.id
+  vpc_id                            = module.vpc.vpc_id
   subnet_ids                        = module.subnets.private_subnet_id
   allowed_security_groups           = [module.ssh.security_group_id]
   eks_additional_security_group_ids = [module.ssh.security_group_id, module.http_https.security_group_id]
@@ -171,7 +163,7 @@ module "eks" {
       xvda = {
         device_name = "/dev/xvda"
         ebs = {
-          volume_size = 50
+          volume_size = 64
           volume_type = "gp3"
           iops        = 3000
           throughput  = 150
@@ -186,23 +178,23 @@ module "eks" {
       name           = "${module.eks.cluster_name}-spot"
       capacity_type  = "SPOT"
       min_size       = 1
-      max_size       = 3
+      max_size       = 2
       desired_size   = 1
       instance_types = ["t3.medium"]
     }
 
-    #    on_demand = {
-    #      name                 = "${module.eks.cluster_name}-on-demand"
-    #      capacity_type        = "ON_DEMAND"
-    #      min_size             = 1
-    #      max_size             = 2
-    #      desired_size         = 1
-    #      force_update_version = true
-    #      instance_types       = ["t3.medium"]
-    #    }
+    on_demand = {
+      name                 = "${module.eks.cluster_name}-on-demand"
+      capacity_type        = "ON_DEMAND"
+      min_size             = 1
+      max_size             = 2
+      desired_size         = 1
+      force_update_version = true
+      instance_types       = ["t3.medium"]
+    }
   }
 
-  apply_config_map_aws_auth = true
+  apply_config_map_aws_auth = false
   map_additional_iam_users = [
     {
       userarn  = "arn:aws:iam::123456789:user/cypik"
@@ -218,23 +210,37 @@ data "aws_eks_cluster_auth" "this" {
   name       = module.eks.cluster_id
 }
 
-provider "helm" {
-  kubernetes {
-    host                   = module.eks.cluster_endpoint
-    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-    token                  = join("", data.aws_eks_cluster_auth.this[*].token)
-  }
-
-}
-
 provider "kubernetes" {
   host                   = module.eks.cluster_endpoint
   cluster_ca_certificate = module.eks.cluster_certificate_authority_data
   token                  = join("", data.aws_eks_cluster_auth.this.token)
 }
 
-data "aws_autoscaling_groups" "groups" {
+resource "null_resource" "kubeconfig_setup" {
+  provisioner "local-exec" {
+    command = <<EOT
+      aws eks update-kubeconfig \
+        --name ${module.eks.cluster_name} \
+        --region ${local.region} \
+        --kubeconfig ${path.module}/Kubeconfig
+      echo "KUBECONFIG created at ${path.module}/Kubeconfig"
+    EOT
+  }
+
+  # Ensure this runs after the EKS module is created
   depends_on = [module.eks]
+}
+
+
+provider "helm" {
+  kubernetes {
+    config_path = "${path.module}/Kubeconfig"
+  }
+}
+
+
+data "aws_autoscaling_groups" "groups" {
+  depends_on = [null_resource.kubeconfig_setup]
   filter {
     name   = "tag-value"
     values = [module.eks.cluster_name]
@@ -250,11 +256,11 @@ output "aws_autoscaling_groups" {
 ############ alb-autoscaler #########
 module "autoscaler" {
   source           = "./../../"
-  depends_on       = [module.eks.cluster_id]
+  depends_on       = [null_resource.kubeconfig_setup]
   name             = "autoscaler"
   repository       = "https://kubernetes.github.io/autoscaler"
   chart            = "cluster-autoscaler"
-  chart_version    = "9.34.1"
+  chart_version    = "9.43.2"
   namespace        = "autoscaler"
   create_namespace = true
   set = [
@@ -276,7 +282,7 @@ module "autoscaler" {
     },
     {
       name  = "autoscalingGroups[1].name"
-      value = data.aws_autoscaling_groups.groups.names[1]
+      value = data.aws_autoscaling_groups.groups.names[0]
     },
     {
       name  = "autoscalingGroups[1].                                                                            "
