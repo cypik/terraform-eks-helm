@@ -19,7 +19,8 @@ To use this module, you can include it in your Terraform configuration. Here's a
 ## Example: alb-controler
 ```hcl
 module "alb-controler" {
-  source          = "git::https://github.com/cypik/terraform-eks-helm.git?ref=v1.0.1"
+  source      = "cypik/helm/eks"
+  version     = "1.0.2"
   name            = "alb"
   chart           = "aws-load-balancer-controller"
   repository      = "https://aws.github.io/eks-charts"
@@ -64,7 +65,8 @@ module "alb-controler" {
 
 ```hcl
 module "autoscaler" {
-  source           = "git::https://github.com/cypik/terraform-eks-helm.git?ref=v1.0.1"
+  source      = "cypik/helm/eks"
+  version     = "1.0.2"
   name             = "autoscaler"
   repository       = "https://kubernetes.github.io/autoscaler"
   chart            = "cluster-autoscaler"
@@ -108,7 +110,8 @@ module "autoscaler" {
 
 ```hcl
 module "ingress_nginx" {
-  source           = "git::https://github.com/cypik/terraform-eks-helm.git?ref=v1.0.1"
+  source      = "cypik/helm/eks"
+  version     = "1.0.2"
   name             = "nginx"
   chart            = "ingress-nginx"
   namespace        = "ingress-nginx"
@@ -162,19 +165,19 @@ This project is licensed under the **MIT** License - see the [LICENSE](https://g
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5.4 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 5.11.0 |
-| <a name="requirement_helm"></a> [helm](#requirement\_helm) | >= 2.3.0, < 3.0.0 |
-| <a name="requirement_kubectl"></a> [kubectl](#requirement\_kubectl) | >= 1.10.0 |
-| <a name="requirement_kubernetes"></a> [kubernetes](#requirement\_kubernetes) | >= 1.10.0, < 2.0.0 |
-| <a name="requirement_null"></a> [null](#requirement\_null) | >= 3.0.0 |
-| <a name="requirement_tls"></a> [tls](#requirement\_tls) | >= 2.0.0 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.15.8 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.58.0 |
+| <a name="requirement_helm"></a> [helm](#requirement\_helm) | >= 3.2.0 |
+| <a name="requirement_kubectl"></a> [kubectl](#requirement\_kubectl) | >= 1.19.0 |
+| <a name="requirement_kubernetes"></a> [kubernetes](#requirement\_kubernetes) | >= 3.2.1 |
+| <a name="requirement_null"></a> [null](#requirement\_null) | >= 3.3.0 |
+| <a name="requirement_tls"></a> [tls](#requirement\_tls) | >= 4.3.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_helm"></a> [helm](#provider\_helm) | >= 2.3.0, < 3.0.0 |
+| <a name="provider_helm"></a> [helm](#provider\_helm) | >= 3.2.0 |
 
 ## Modules
 

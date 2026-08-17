@@ -36,36 +36,9 @@ resource "helm_release" "helm" {
   pass_credentials           = var.pass_credentials
   lint                       = var.lint
 
-  dynamic "postrender" {
-    for_each = var.postrender == null ? null : var.postrender
-    content {
-      binary_path = try(postrender.value.binary_path, null)
-      args        = try(postrender.value.args, null)
-    }
-  }
-
-  dynamic "set_list" {
-    for_each = var.set_list
-    content {
-      name  = set_list.value.name
-      value = set_list.value.value
-    }
-  }
-
-  dynamic "set" {
-    for_each = var.set
-    content {
-      name  = set.value.name
-      value = set.value.value
-    }
-  }
-
-  dynamic "set_sensitive" {
-    for_each = var.set_sensitive
-    content {
-      name  = set_sensitive.value.name
-      value = set_sensitive.value.value
-    }
-  }
+  postrender    = length(var.postrender) > 0 ? var.postrender[0] : null
+  set_list      = var.set_list
+  set           = var.set
+  set_sensitive = var.set_sensitive
 }
 

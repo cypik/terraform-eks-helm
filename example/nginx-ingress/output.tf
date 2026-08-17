@@ -27,6 +27,7 @@ output "status" {
   value       = module.ingress_nginx.status
   description = "Status of the release."
 }
+
 output "manifest" {
   value = module.ingress_nginx.manifest
 }
