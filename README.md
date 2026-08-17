@@ -19,8 +19,8 @@ To use this module, you can include it in your Terraform configuration. Here's a
 ## Example: alb-controler
 ```hcl
 module "alb-controler" {
-  source      = "cypik/helm/eks"
-  version     = "1.0.2"
+  source          = "cypik/helm/eks"
+  version         = "1.0.2"
   name            = "alb"
   chart           = "aws-load-balancer-controller"
   repository      = "https://aws.github.io/eks-charts"
@@ -65,8 +65,8 @@ module "alb-controler" {
 
 ```hcl
 module "autoscaler" {
-  source      = "cypik/helm/eks"
-  version     = "1.0.2"
+  source           = "cypik/helm/eks"
+  version          = "1.0.2"
   name             = "autoscaler"
   repository       = "https://kubernetes.github.io/autoscaler"
   chart            = "cluster-autoscaler"
@@ -110,8 +110,8 @@ module "autoscaler" {
 
 ```hcl
 module "ingress_nginx" {
-  source      = "cypik/helm/eks"
-  version     = "1.0.2"
+  source           = "cypik/helm/eks"
+  version          = "1.0.2"
   name             = "nginx"
   chart            = "ingress-nginx"
   namespace        = "ingress-nginx"
